@@ -40,9 +40,6 @@ and returns an integral value extracted from there.
 
 A field with no ``unnamed_fields`` and no ``!function`` is in error.
 
-FIXME: the fields of the structure into which this result will be stored
-is restricted to ``int``.  Which means that we cannot expand 64-bit items.
-
 Field examples:
 
 +---------------------------+---------------------------------------------+
