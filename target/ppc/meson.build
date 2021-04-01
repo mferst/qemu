@@ -1,4 +1,9 @@
+gen = [
+  decodetree.process('prefixed.decode', extra_args: ['--static-decode=disas_prefixed', '--insnwidth=64'])
+]
+
 ppc_ss = ss.source_set()
+ppc_ss.add(gen)
 ppc_ss.add(files(
   'cpu-models.c',
   'cpu.c',

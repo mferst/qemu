@@ -6900,6 +6900,9 @@ static inline void set_avr64(int regno, TCGv_i64 src, bool high)
     tcg_gen_st_i64(src, cpu_env, avr64_offset(regno, high));
 }
 
+#include "decode-prefixed.c.inc"
+#include "translate/prefixed-impl.c.inc"
+
 #include "translate/fp-impl.c.inc"
 
 #include "translate/vmx-impl.c.inc"
@@ -7988,22 +7991,37 @@ static bool ppc_tr_breakpoint_check(DisasContextBase *dcbase, CPUState *cs,
      * setting tb->size below does the right thing.
      */
     ctx->base.pc_next += 4;
+    /* TODO LP: check how to change this for prefixed instructions */
     return true;
 }
 
-static void ppc_tr_translate_insn(DisasContextBase *dcbase, CPUState *cs)
+static void ppc_tr_translate_insn_prefixed(DisasContext *ctx, CPUState *cs, uint32_t prefix)
 {
-    DisasContext *ctx = container_of(dcbase, DisasContext, base);
+    uint64_t insn;
+    CPUPPCState *env = cs->env_ptr;
+
+    insn = ((uint64_t)prefix) << 32 | translator_ldl_swap(env, ctx->base.pc_next + 4,
+                               need_byteswap(ctx));
+
+    /*
+    LOG_DISAS("translate opcode %08x (%02x %02x %02x %02x) (%s)\n",
+              ctx->opcode, opc1(ctx->opcode), opc2(ctx->opcode),
+              opc3(ctx->opcode), opc4(ctx->opcode),
+              ctx->le_mode ? "little" : "big");
+    */
+
+    disas_prefixed(ctx, insn);
+
+    ctx->base.pc_next += 8;
+
+    /* TODO LP: do we need to check if we're crossing page boundaries with prefixed instruction? */
+}
+
+static void ppc_tr_translate_insn_non_prefixed(DisasContext *ctx, CPUState *cs)
+{
     PowerPCCPU *cpu = POWERPC_CPU(cs);
     CPUPPCState *env = cs->env_ptr;
     opc_handler_t **table, *handler;
-
-    LOG_DISAS("----------------\n");
-    LOG_DISAS("nip=" TARGET_FMT_lx " super=%d ir=%d\n",
-              ctx->base.pc_next, ctx->mem_idx, (int)msr_ir);
-
-    ctx->opcode = translator_ldl_swap(env, ctx->base.pc_next,
-                                      need_byteswap(ctx));
 
     LOG_DISAS("translate opcode %08x (%02x %02x %02x %02x) (%s)\n",
               ctx->opcode, opc1(ctx->opcode), opc2(ctx->opcode),
@@ -8067,11 +8085,41 @@ static void ppc_tr_translate_insn(DisasContextBase *dcbase, CPUState *cs)
         uint32_t excp = gen_prep_dbgex(ctx);
         gen_exception_nip(ctx, excp, ctx->base.pc_next);
     }
+}
 
-    if (tcg_check_temp_count()) {
-        qemu_log("Opcode %02x %02x %02x %02x (%08x) leaked "
-                 "temporaries\n", opc1(ctx->opcode), opc2(ctx->opcode),
-                 opc3(ctx->opcode), opc4(ctx->opcode), ctx->opcode);
+static void ppc_tr_translate_insn(DisasContextBase *dcbase, CPUState *cs)
+{
+    DisasContext *ctx = container_of(dcbase, DisasContext, base);
+    uint32_t opcode;
+    CPUPPCState *env = cs->env_ptr;
+
+    LOG_DISAS("----------------\n");
+    LOG_DISAS("nip=" TARGET_FMT_lx " super=%d ir=%d\n",
+              ctx->base.pc_next, ctx->mem_idx, (int)msr_ir);
+
+    opcode = translator_ldl_swap(env, ctx->base.pc_next,
+                                 need_byteswap(ctx));
+
+    if (opc1(opcode) == 0x01) {
+	/* prefixed instruction */
+	/* TODO LP: implement */
+        ppc_tr_translate_insn_prefixed(ctx, cs, opcode);
+
+        if (tcg_check_temp_count()) {
+            /* TODO LP:fixme */
+            qemu_log("Opcode (%08x) leaked "
+                     "temporaries\n", opcode);
+        }
+    } else {
+	/* non-prefixed instruction */
+	ctx->opcode = opcode;
+        ppc_tr_translate_insn_non_prefixed(ctx, cs);
+
+        if (tcg_check_temp_count()) {
+            qemu_log("Opcode %02x %02x %02x %02x (%08x) leaked "
+                     "temporaries\n", opc1(ctx->opcode), opc2(ctx->opcode),
+                     opc3(ctx->opcode), opc4(ctx->opcode), ctx->opcode);
+        }
     }
 
     ctx->base.is_jmp = ctx->exception == POWERPC_EXCP_NONE ?

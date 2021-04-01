@@ -1,0 +1,45 @@
+#
+# Power ISA decode definitions for prefixed instructions.
+#
+# Copyright (c) 2020 Luis Pires <luis.pires@eldorado.org.br>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, see <http://www.gnu.org/licenses/>.
+#
+
+#%d_si	16:16
+#%d_frs	6:5
+#%d_frt	6:5
+#%d_rs	6:5
+#%d_rt	6:5
+#%d_to	6:5
+#%d_ui	16:16
+#%d_d	16:16
+
+#%p_R		52:1
+#%RA		16:5
+#%RT		21:5
+
+%p_D7_D	32:18 0:16
+
+#@d_7	........ ........ ........ ........ ........ ........ ........ ........ 
+#pld	000001 00 0 -- . -- .................. 111001 ..... ..... ................ r=%p_R rt=%RT ra=%RA d=%p_D7_D
+
+
+
+
+#pld	000001 00 0 -- r:1 -- d0:18 111001 rt:5 ra:5 d1:16
+#pstb	000001 10 0 -- r:1 -- d0:18 100110 rs:5 ra:5 d1:16
+
+pld	000001 00 0 -- r:1 -- .................. 111001 rt:5 ra:5 ................ d=%p_D7_D
+pstb	000001 10 0 -- r:1 -- .................. 100110 rs:5 ra:5 ................ d=%p_D7_D
