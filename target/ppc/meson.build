@@ -1,5 +1,5 @@
 gen = [
-  decodetree.process('prefixed.decode', extra_args: ['--static-decode=disas_prefixed', '--insnwidth=64'])
+  decodetree.process('ppc.decode', extra_args: ['--varinsnwidth=64'])
 ]
 
 ppc_ss = ss.source_set()

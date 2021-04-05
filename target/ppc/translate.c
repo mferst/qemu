@@ -180,6 +180,7 @@ struct DisasContext {
     uint32_t flags;
     uint64_t insns_flags;
     uint64_t insns_flags2;
+    CPUPPCState *env;
 };
 
 /* Return true iff byteswap is needed in a scalar memop */
@@ -6900,8 +6901,31 @@ static inline void set_avr64(int regno, TCGv_i64 src, bool high)
     tcg_gen_st_i64(src, cpu_env, avr64_offset(regno, high));
 }
 
-#include "decode-prefixed.c.inc"
-#include "translate/prefixed-impl.c.inc"
+/* decoder helper */
+static uint64_t decode_load_bytes(DisasContext *ctx, uint64_t insn,
+                                  int i, int n)
+{
+    uint64_t insn_part;
+    /*
+     * Anything other than (i=0,n=4) or (i=4,n=8) is a
+     * decode tree definition error and should never happen.
+     */
+
+    g_assert(i == 0 || i == 4);
+    g_assert((n - i) == 4);
+
+    insn_part = translator_ldl_swap(ctx->env, ctx->base.pc_next,
+                                    need_byteswap(ctx));
+    insn |= insn_part << (32 - 8 * i);
+
+    ctx->base.pc_next += 4;
+
+    return insn;
+}
+
+#include "decode-ppc.c.inc"
+#include "translate/fixedpoint-impl.c.inc"
+#include "translate/vector-impl.c.inc"
 
 #include "translate/fp-impl.c.inc"
 
@@ -7966,6 +7990,8 @@ static void ppc_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
 
     bound = -(ctx->base.pc_first | TARGET_PAGE_MASK) / 4;
     ctx->base.max_insns = MIN(ctx->base.max_insns, bound);
+
+    ctx->env = env;
 }
 
 static void ppc_tr_tb_start(DisasContextBase *db, CPUState *cs)
@@ -7995,28 +8021,6 @@ static bool ppc_tr_breakpoint_check(DisasContextBase *dcbase, CPUState *cs,
     return true;
 }
 
-static void ppc_tr_translate_insn_prefixed(DisasContext *ctx, CPUState *cs, uint32_t prefix)
-{
-    uint64_t insn;
-    CPUPPCState *env = cs->env_ptr;
-
-    insn = ((uint64_t)prefix) << 32 | translator_ldl_swap(env, ctx->base.pc_next + 4,
-                               need_byteswap(ctx));
-
-    /*
-    LOG_DISAS("translate opcode %08x (%02x %02x %02x %02x) (%s)\n",
-              ctx->opcode, opc1(ctx->opcode), opc2(ctx->opcode),
-              opc3(ctx->opcode), opc4(ctx->opcode),
-              ctx->le_mode ? "little" : "big");
-    */
-
-    disas_prefixed(ctx, insn);
-
-    ctx->base.pc_next += 8;
-
-    /* TODO LP: do we need to check if we're crossing page boundaries with prefixed instruction? */
-}
-
 static void ppc_tr_translate_insn_non_prefixed(DisasContext *ctx, CPUState *cs)
 {
     PowerPCCPU *cpu = POWERPC_CPU(cs);
@@ -8027,7 +8031,7 @@ static void ppc_tr_translate_insn_non_prefixed(DisasContext *ctx, CPUState *cs)
               ctx->opcode, opc1(ctx->opcode), opc2(ctx->opcode),
               opc3(ctx->opcode), opc4(ctx->opcode),
               ctx->le_mode ? "little" : "big");
-    ctx->base.pc_next += 4;
+
     table = cpu->opcodes;
     handler = table[opc1(ctx->opcode)];
     if (is_indirect_opcode(handler)) {
@@ -8090,36 +8094,29 @@ static void ppc_tr_translate_insn_non_prefixed(DisasContext *ctx, CPUState *cs)
 static void ppc_tr_translate_insn(DisasContextBase *dcbase, CPUState *cs)
 {
     DisasContext *ctx = container_of(dcbase, DisasContext, base);
-    uint32_t opcode;
-    CPUPPCState *env = cs->env_ptr;
+    uint64_t insn;
 
     LOG_DISAS("----------------\n");
     LOG_DISAS("nip=" TARGET_FMT_lx " super=%d ir=%d\n",
               ctx->base.pc_next, ctx->mem_idx, (int)msr_ir);
 
-    opcode = translator_ldl_swap(env, ctx->base.pc_next,
-                                 need_byteswap(ctx));
+    insn = decode_load(ctx);
 
-    if (opc1(opcode) == 0x01) {
-	/* prefixed instruction */
-	/* TODO LP: implement */
-        ppc_tr_translate_insn_prefixed(ctx, cs, opcode);
-
-        if (tcg_check_temp_count()) {
-            /* TODO LP:fixme */
-            qemu_log("Opcode (%08x) leaked "
-                     "temporaries\n", opcode);
-        }
-    } else {
-	/* non-prefixed instruction */
-	ctx->opcode = opcode;
+    if (!decode(ctx, insn)) {
+        /*
+	 * Instruction not found in decode tree.
+	 * Fall back to legacy 32-bit instruction code.
+	 *
+	 * decode_load() keeps 32-bit instructions in the high 32-bits of insn
+	 *
+	 */
+	ctx->opcode = (uint32_t)(insn >> 32);
         ppc_tr_translate_insn_non_prefixed(ctx, cs);
+    }
 
-        if (tcg_check_temp_count()) {
-            qemu_log("Opcode %02x %02x %02x %02x (%08x) leaked "
-                     "temporaries\n", opc1(ctx->opcode), opc2(ctx->opcode),
-                     opc3(ctx->opcode), opc4(ctx->opcode), ctx->opcode);
-        }
+    if (tcg_check_temp_count()) {
+        qemu_log("Opcode (%016" PRIx64 ") leaked "
+                 "temporaries\n", insn);
     }
 
     ctx->base.is_jmp = ctx->exception == POWERPC_EXCP_NONE ?
