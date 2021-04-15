@@ -263,6 +263,7 @@ static void gen_exception_err(DisasContext *ctx, uint32_t excp, uint32_t error)
     tcg_temp_free_i32(t0);
     tcg_temp_free_i32(t1);
     ctx->exception = (excp);
+    ctx->base.is_jmp = DISAS_NORETURN;
 }
 
 static void gen_exception(DisasContext *ctx, uint32_t excp)
@@ -280,6 +281,7 @@ static void gen_exception(DisasContext *ctx, uint32_t excp)
     gen_helper_raise_exception(cpu_env, t0);
     tcg_temp_free_i32(t0);
     ctx->exception = (excp);
+    ctx->base.is_jmp = DISAS_NORETURN;
 }
 
 static void gen_exception_nip(DisasContext *ctx, uint32_t excp,
@@ -292,6 +294,7 @@ static void gen_exception_nip(DisasContext *ctx, uint32_t excp,
     gen_helper_raise_exception(cpu_env, t0);
     tcg_temp_free_i32(t0);
     ctx->exception = (excp);
+    ctx->base.is_jmp = DISAS_NORETURN;
 }
 
 /*
@@ -337,6 +340,7 @@ static void gen_debug_exception(DisasContext *ctx)
     t0 = tcg_const_i32(EXCP_DEBUG);
     gen_helper_raise_exception(cpu_env, t0);
     tcg_temp_free_i32(t0);
+    ctx->base.is_jmp = DISAS_NORETURN;
 }
 
 static inline void gen_inval_exception(DisasContext *ctx, uint32_t error)
@@ -8037,7 +8041,6 @@ static bool ppc_tr_breakpoint_check(DisasContextBase *dcbase, CPUState *cs,
     DisasContext *ctx = container_of(dcbase, DisasContext, base);
 
     gen_debug_exception(ctx);
-    dcbase->is_jmp = DISAS_NORETURN;
     /*
      * The address covered by the breakpoint must be included in
      * [tb->pc, tb->pc + tb->size) in order to for it to be properly
@@ -8067,7 +8070,6 @@ static void ppc_tr_translate_insn(DisasContextBase *dcbase, CPUState *cs)
     ok = decode_legacy(cpu, ctx, insn);
     if (!ok) {
         gen_invalid(ctx);
-        ctx->base.is_jmp = DISAS_NORETURN;
     }
 
 #if defined(DO_PPC_STATISTICS)
@@ -8088,9 +8090,6 @@ static void ppc_tr_translate_insn(DisasContextBase *dcbase, CPUState *cs)
                  "temporaries\n", opc1(ctx->opcode), opc2(ctx->opcode),
                  opc3(ctx->opcode), opc4(ctx->opcode), ctx->opcode);
     }
-
-    ctx->base.is_jmp = ctx->exception == POWERPC_EXCP_NONE ?
-        DISAS_NEXT : DISAS_NORETURN;
 }
 
 static void ppc_tr_tb_stop(DisasContextBase *dcbase, CPUState *cs)
