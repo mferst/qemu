@@ -35,7 +35,7 @@ static bool do_ldst_D(DisasContext *ctx, arg_D *a, bool update,
 {
     TCGv ea;
 
-    if (update && (a->ra == 0 || a->ra == a->rt)) {
+    if (update && (a->ra == 0 || (!store && a->ra == a->rt))) {
         return false;
     }
     gen_set_access_type(ctx, ACCESS_INT);
@@ -168,7 +168,7 @@ static bool do_ldst_X(DisasContext *ctx, arg_X *a, bool update,
 {
     TCGv ea;
 
-    if (update && (a->ra == 0 || a->ra == a->rt)) {
+    if (update && (a->ra == 0 || (!store && a->ra == a->rt))) {
         return false;
     }
     gen_set_access_type(ctx, ACCESS_INT);
