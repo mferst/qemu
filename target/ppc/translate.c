@@ -3600,6 +3600,7 @@ static void gen_b(DisasContext *ctx)
     target_ulong li, target;
 
     ctx->exception = POWERPC_EXCP_BRANCH;
+    ctx->base.is_jmp = DISAS_NORETURN;
     /* sign extend LI */
     li = LI(ctx->opcode);
     li = (li ^ 0x02000000) - 0x02000000;
@@ -3626,6 +3627,7 @@ static void gen_bcond(DisasContext *ctx, int type)
     TCGLabel *l1;
     TCGv target;
     ctx->exception = POWERPC_EXCP_BRANCH;
+    ctx->base.is_jmp = DISAS_NORETURN;
 
     if (type == BCOND_LR || type == BCOND_CTR || type == BCOND_TAR) {
         target = tcg_temp_local_new();
