@@ -319,6 +319,47 @@ target_ulong helper_popcntb(target_ulong val)
 }
 #endif
 
+#if defined(TARGET_PPC64)
+target_ulong helper_cfuged(target_ulong src, target_ulong mask)
+{
+    target_ulong m, left = 0, right = 0;
+    unsigned int n, i = 64;
+    bool bit = 0;
+
+    if(mask == 0 || mask == -1) {
+        return src;
+    }
+
+    while(i) {
+        n = ctz64(mask);
+        if(n > i) {
+            n = i;
+        }
+
+        m = (1ll << n) - 1;
+        if(bit) {
+            right = ror64(right | (src & m), n);
+        } else {
+            left = ror64(left | (src & m), n);
+        }
+
+        src >>= n;
+        mask >>= n;
+        i -= n;
+        bit = !bit;
+        mask = ~mask;
+    }
+
+    if(bit) {
+        n = ctpop64(mask);
+    } else {
+        n = 64-ctpop64(mask);
+    }
+
+    return left | (right >> n);
+}
+#endif
+
 /*****************************************************************************/
 /* PowerPC 601 specific instructions (POWER bridge) */
 target_ulong helper_div(CPUPPCState *env, target_ulong arg1, target_ulong arg2)

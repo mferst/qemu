@@ -440,3 +440,9 @@ static bool trans_SETBC(DisasContext *ctx, arg_SETBC *a)
 
     return true;
 }
+
+static bool trans_CFUGED(DisasContext *ctx, arg_CFUGED *a)
+{
+    gen_helper_cfuged(cpu_gpr[a->ra], cpu_gpr[a->rs], cpu_gpr[a->rb]);
+    return true;
+}
