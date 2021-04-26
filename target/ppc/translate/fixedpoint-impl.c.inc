@@ -422,3 +422,21 @@ static bool trans_PNOP(DisasContext *ctx, arg_PNOP *a)
      */
     return true;
 }
+
+static bool trans_SETBC(DisasContext *ctx, arg_SETBC *a)
+{
+    uint32_t mask = 0x08 >> (a->bi & 0x03);
+    TCGv tval = tcg_const_tl(a->n?-1:1), fval = tcg_const_tl(0),
+         temp = tcg_temp_new();
+
+    tcg_gen_extu_i32_tl(temp, cpu_crf[a->bi >> 2]);
+    tcg_gen_andi_tl(temp, temp, mask);
+    tcg_gen_movcond_tl(a->r?TCG_COND_EQ:TCG_COND_NE, cpu_gpr[a->rt],
+                       temp, fval, tval, fval);
+
+    tcg_temp_free(tval);
+    tcg_temp_free(fval);
+    tcg_temp_free(temp);
+
+    return true;
+}
