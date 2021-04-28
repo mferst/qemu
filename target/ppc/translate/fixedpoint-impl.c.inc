@@ -21,7 +21,7 @@
  * Incorporate CIA into the constant when R=1.
  * Validate that when R=1, RA=0.
  */
-static bool resolve_PLS_D(DisasContext *ctx, arg_PLS_D *a)
+static bool resolve_MLS_D(DisasContext *ctx, arg_MLS_D *a)
 {
     if (a->r) {
         a->si += ctx->cia;
@@ -302,12 +302,12 @@ static bool trans_STDUX(DisasContext *ctx, arg_X *a)
     return do_ldst_X(ctx, a, true, true, MO_Q);
 }
 
-static bool do_ldst_PLS_D(DisasContext *ctx, arg_PLS_D *a,
+static bool do_ldst_MLS_D(DisasContext *ctx, arg_MLS_D *a,
                           bool store, MemOp mop)
 {
     TCGv ea;
 
-    if (!resolve_PLS_D(ctx, a)) {
+    if (!resolve_MLS_D(ctx, a)) {
         return false;
     }
     gen_set_access_type(ctx, ACCESS_INT);
@@ -332,54 +332,54 @@ static bool do_ldst_PLS_D(DisasContext *ctx, arg_PLS_D *a,
     return true;
 }
 
-static bool trans_PLBZ(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PLBZ(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, false, MO_UB);
+    return do_ldst_MLS_D(ctx, a, false, MO_UB);
 }
 
-static bool trans_PLHZ(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PLHZ(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, false, MO_UW);
+    return do_ldst_MLS_D(ctx, a, false, MO_UW);
 }
 
-static bool trans_PLHA(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PLHA(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, false, MO_SW);
+    return do_ldst_MLS_D(ctx, a, false, MO_SW);
 }
 
-static bool trans_PLWZ(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PLWZ(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, false, MO_UL);
+    return do_ldst_MLS_D(ctx, a, false, MO_UL);
 }
 
-static bool trans_PLWA(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PLWA(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, false, MO_SL);
+    return do_ldst_MLS_D(ctx, a, false, MO_SL);
 }
 
-static bool trans_PLD(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PLD(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, false, MO_Q);
+    return do_ldst_MLS_D(ctx, a, false, MO_Q);
 }
 
-static bool trans_PSTB(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PSTB(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, true, MO_UB);
+    return do_ldst_MLS_D(ctx, a, true, MO_UB);
 }
 
-static bool trans_PSTH(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PSTH(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, true, MO_UW);
+    return do_ldst_MLS_D(ctx, a, true, MO_UW);
 }
 
-static bool trans_PSTW(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PSTW(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, true, MO_UL);
+    return do_ldst_MLS_D(ctx, a, true, MO_UL);
 }
 
-static bool trans_PSTD(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PSTD(DisasContext *ctx, arg_MLS_D *a)
 {
-    return do_ldst_PLS_D(ctx, a, true, MO_Q);
+    return do_ldst_MLS_D(ctx, a, true, MO_Q);
 }
 
 static bool trans_ADDI(DisasContext *ctx, arg_D *a)
@@ -398,9 +398,9 @@ static bool trans_ADDIS(DisasContext *ctx, arg_D *a)
     return trans_ADDI(ctx, a);
 }
 
-static bool trans_PADDI(DisasContext *ctx, arg_PLS_D *a)
+static bool trans_PADDI(DisasContext *ctx, arg_MLS_D *a)
 {
-    if (!resolve_PLS_D(ctx, a)) {
+    if (!resolve_MLS_D(ctx, a)) {
         return false;
     }
     if (a->ra) {
