@@ -91,3 +91,7 @@ CFUGED          011111 rs:5 ra:5 rb:5 0011011100 -
 ### Move To/From System Register Instructions
 
 SETBC           011111 rt:5 bi:5 ----- 011 n:1 r:1 00000 -
+
+## Vector Bit Manipulation Instruction
+
+VCFUGED         000100 vrt:5 vra:5 vrb:5 10101001101
