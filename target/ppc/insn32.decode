@@ -18,7 +18,7 @@
 #
 
 &D              rt ra si
-@D              ...... rt:5 ra:5 si:s16                 &D
+#@D              ...... rt:5 ra:5 si:s16                 &D
 
 &MLS_D          rt ra si r !extern
 @MLS_D          ...... rt:5 ra:5 si:s16                 &MLS_D r=0
@@ -86,8 +86,8 @@ STDUX           011111 ..... ..... ..... 0010110101 -   @X
 
 ### Fixed-Point Arithmetic Instructions
 
-ADDI            001110 ..... ..... ................     @D
-ADDIS           001111 ..... ..... ................     @D
+ADDI            001110 ..... ..... ................     @MLS_D
+ADDIS           001111 ..... ..... ................     @MLS_D
 
 ### Move To/From System Register Instructions
 

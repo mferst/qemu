@@ -342,22 +342,6 @@ static bool trans_PSTD(DisasContext *ctx, arg_MLS_D *a)
     return do_ldst_MLS_D(ctx, a, false, true, MO_Q);
 }
 
-static bool trans_ADDI(DisasContext *ctx, arg_D *a)
-{
-    if (a->ra) {
-        tcg_gen_addi_tl(cpu_gpr[a->rt], cpu_gpr[a->ra], a->si);
-    } else {
-        tcg_gen_movi_tl(cpu_gpr[a->rt], a->si);
-    }
-    return true;
-}
-
-static bool trans_ADDIS(DisasContext *ctx, arg_D *a)
-{
-    a->si <<= 16;
-    return trans_ADDI(ctx, a);
-}
-
 static bool trans_PADDI(DisasContext *ctx, arg_MLS_D *a)
 {
     if (!resolve_MLS_D(ctx, a)) {
@@ -369,6 +353,17 @@ static bool trans_PADDI(DisasContext *ctx, arg_MLS_D *a)
         tcg_gen_movi_tl(cpu_gpr[a->rt], a->si);
     }
     return true;
+}
+
+static bool trans_ADDI(DisasContext *ctx, arg_MLS_D *a)
+{
+    return trans_PADDI(ctx, a);
+}
+
+static bool trans_ADDIS(DisasContext *ctx, arg_MLS_D *a)
+{
+    a->si <<= 16;
+    return trans_PADDI(ctx, a);
 }
 
 static bool trans_PNOP(DisasContext *ctx, arg_PNOP *a)
